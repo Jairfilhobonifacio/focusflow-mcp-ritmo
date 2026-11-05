@@ -1,0 +1,21 @@
+{
+  "name": "focusflow-mcp-ritmo",
+  "version": "1.0.0",
+  "description": "FocusFlow / Zenway — Motor de Capacidade Cognitiva, Ritmo Pessoal e MCP Server para o Claude Code (Especializacao em IA PDA)",
+  "type": "module",
+  "main": "build/index.js",
+  "scripts": {
+    "build": "tsc && node -e \"const fs=require('fs'); fs.cpSync('build','meu-mcp-server/build',{recursive:true}); fs.cpSync('data','meu-mcp-server/data',{recursive:true});\"",
+    "test": "node --import tsx --test tests/*.test.ts",
+    "start": "node build/index.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.12.1",
+    "zod": "^3.25.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.0",
+    "tsx": "^4.19.4",
+    "typescript": "^5.8.3"
+  }
+}
