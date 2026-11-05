@@ -1,0 +1,74 @@
+{
+  "dias": [
+    {
+      "data_iso": "2026-11-05",
+      "minutos_disponiveis_brutos": 480,
+      "minutos_reunioes_fixas": 135,
+      "blocos_foco_profundo_planejados": 3,
+      "tarefas": [
+        {
+          "id": "ff-101",
+          "titulo": "Revisar especificacao EARS e BDD do checkout idempotente",
+          "energia": "alta",
+          "estimativa_minutos": 90,
+          "prioridade_eisenhower": "importante_urgente",
+          "concluida": false,
+          "nota_privada_usuario": "Segredo interno: token pessoal nao deve sair no MCP"
+        },
+        {
+          "id": "ff-102",
+          "titulo": "Auditar relatorio semanal MXP e aprovar pauta de sexta",
+          "energia": "alta",
+          "estimativa_minutos": 75,
+          "prioridade_eisenhower": "importante_nao_urgente",
+          "concluida": false,
+          "nota_privada_usuario": "Feedback confidencial de membro"
+        },
+        {
+          "id": "ff-103",
+          "titulo": "Responder e-mails operacionais e atualizar planilha de acompanhamento",
+          "energia": "baixa",
+          "estimativa_minutos": 45,
+          "prioridade_eisenhower": "nao_importante_urgente",
+          "concluida": true,
+          "nota_privada_usuario": "Privado"
+        },
+        {
+          "id": "ff-104",
+          "titulo": "Implementar validacao de schema no servidor MCP com testes",
+          "energia": "alta",
+          "estimativa_minutos": 120,
+          "prioridade_eisenhower": "importante_urgente",
+          "concluida": false,
+          "nota_privada_usuario": "Chave local de homologacao"
+        }
+      ]
+    },
+    {
+      "data_iso": "2026-11-06",
+      "minutos_disponiveis_brutos": 420,
+      "minutos_reunioes_fixas": 60,
+      "blocos_foco_profundo_planejados": 2,
+      "tarefas": [
+        {
+          "id": "ff-201",
+          "titulo": "Gravar demonstracao do fluxo completo para o Demo Day",
+          "energia": "media",
+          "estimativa_minutos": 60,
+          "prioridade_eisenhower": "importante_nao_urgente",
+          "concluida": false,
+          "nota_privada_usuario": "Rascunho privado"
+        },
+        {
+          "id": "ff-202",
+          "titulo": "Organizar notas permanentes do segundo cerebro da semana",
+          "energia": "baixa",
+          "estimativa_minutos": 40,
+          "prioridade_eisenhower": "importante_nao_urgente",
+          "concluida": false,
+          "nota_privada_usuario": "Diario pessoal"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,11 @@
+{
+  "name": "meu-mcp-server",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "build/index.js",
+  "scripts": {
+    "build": "npm --prefix .. run build",
+    "test": "npm --prefix .. test",
+    "start": "node build/index.js"
+  }
+}
