@@ -4,6 +4,7 @@ import { McpError, ErrorCode } from '@modelcontextprotocol/sdk/types.js';
 import { z } from 'zod';
 import { calcularCapacidadeLiquida, DataIsoSchema, FiltroEnergiaSchema } from './domain/capacidade.js';
 import { carregarDiaAgenda } from './domain/agendaRepository.js';
+import { simularReplanejamentoDia } from './domain/replanejamento.js';
 
 const server = new McpServer({
   name: 'focusflow-mcp-ritmo',
@@ -160,6 +161,75 @@ server.tool(
           {
             type: 'text',
             text: 'Erro interno ao calcular capacidade liquida do dia.',
+          },
+        ],
+      };
+    }
+  },
+);
+
+server.tool(
+  'simular_replanejamento_dia',
+  'Use quando precisar simular quais tarefas manter hoje e quais adiar em um dia sobrecarregado (YYYY-MM-DD), respeitando a matriz de Eisenhower, a capacidade liquida e o teto de 240 min de alta energia. Somente leitura.',
+  {
+    data_iso: z
+      .string()
+      .max(10, 'data_iso deve ter no maximo 10 caracteres (YYYY-MM-DD)')
+      .describe('Data da agenda no formato estrito YYYY-MM-DD (ex.: 2026-11-05)'),
+  },
+  async (args) => {
+    const parsedDate = DataIsoSchema.safeParse(args.data_iso);
+    if (!parsedDate.success) {
+      throw new McpError(
+        ErrorCode.InvalidParams,
+        'Parametro data_iso invalido: informe exatamente YYYY-MM-DD (10 caracteres, apenas digitos e hifens).',
+      );
+    }
+
+    try {
+      const dia = carregarDiaAgenda(parsedDate.data);
+      if (!dia) {
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(
+                {
+                  encontrado: false,
+                  data_iso: parsedDate.data,
+                  mensagem: 'Nenhuma agenda encontrada para simular replanejamento.',
+                },
+                null,
+                2,
+              ),
+            },
+          ],
+        };
+      }
+
+      const plano = simularReplanejamentoDia({
+        data_iso: dia.data_iso,
+        minutos_disponiveis_brutos: dia.minutos_disponiveis_brutos,
+        minutos_reunioes_fixas: dia.minutos_reunioes_fixas,
+        tarefas: dia.tarefas,
+      });
+
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(plano, null, 2),
+          },
+        ],
+      };
+    } catch (err) {
+      console.error('[focusflow-mcp-ritmo] Erro interno em simular_replanejamento_dia:', err);
+      return {
+        isError: true,
+        content: [
+          {
+            type: 'text',
+            text: 'Erro interno ao simular replanejamento do dia.',
           },
         ],
       };
