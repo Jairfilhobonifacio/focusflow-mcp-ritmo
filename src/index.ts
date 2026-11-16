@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { calcularCapacidadeLiquida, DataIsoSchema, FiltroEnergiaSchema } from './domain/capacidade.js';
 import { carregarDiaAgenda } from './domain/agendaRepository.js';
 import { simularReplanejamentoDia } from './domain/replanejamento.js';
+import { calcularFadigaSemanal } from './domain/fadigaSemanal.js';
 
 const server = new McpServer({
   name: 'focusflow-mcp-ritmo',
@@ -232,6 +233,68 @@ server.tool(
             text: 'Erro interno ao simular replanejamento do dia.',
           },
         ],
+      };
+    }
+  },
+);
+
+server.tool(
+  'diagnosticar_fadiga_periodo',
+  'Use quando precisar avaliar risco de burnout e sequencia de sobrecarga em multiplas datas unicas (YYYY-MM-DD, maximo 14 dias). Somente leitura.',
+  {
+    datas_iso: z
+      .array(z.string().max(10, 'Cada data_iso deve ter no maximo 10 caracteres'))
+      .min(1, 'Informe pelo menos 1 data YYYY-MM-DD')
+      .max(14, 'Informe no maximo 14 datas por consulta')
+      .describe('Lista de datas unicas YYYY-MM-DD (ate 14 dias) para diagnostico de fadiga'),
+  },
+  async (args) => {
+    const datasUnicas: string[] = [];
+    const vistas = new Set<string>();
+
+    for (const dataBruta of args.datas_iso) {
+      const parsed = DataIsoSchema.safeParse(dataBruta);
+      if (!parsed.success) {
+        throw new McpError(
+          ErrorCode.InvalidParams,
+          'Parametro invalido em datas_iso: informe apenas datas no formato YYYY-MM-DD.',
+        );
+      }
+      if (!vistas.has(parsed.data)) {
+        vistas.add(parsed.data);
+        datasUnicas.push(parsed.data);
+      }
+    }
+
+    try {
+      const diasCarregados = datasUnicas
+        .map((d) => carregarDiaAgenda(d))
+        .filter((d): d is NonNullable<typeof d> => d !== null);
+
+      if (diasCarregados.length === 0) {
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(
+                { encontrado: false, mensagem: 'Nenhum dia encontrado para o periodo informado.' },
+                null,
+                2,
+              ),
+            },
+          ],
+        };
+      }
+
+      const relatorio = calcularFadigaSemanal(diasCarregados);
+      return {
+        content: [{ type: 'text', text: JSON.stringify(relatorio, null, 2) }],
+      };
+    } catch (err) {
+      console.error('[focusflow-mcp-ritmo] Erro interno em diagnosticar_fadiga_periodo:', err);
+      return {
+        isError: true,
+        content: [{ type: 'text', text: 'Erro interno ao diagnosticar fadiga do periodo.' }],
       };
     }
   },
