@@ -1,4 +1,13 @@
-import { calcularCapacidadeLiquida, TarefaPublica } from './capacidade.js';
+import {
+  calcularCapacidadeLiquida,
+  TarefaPublica,
+  TETO_FOCO_PROFUNDO_MINUTOS,
+} from './capacidade.js';
+
+export const LIMIAR_SEQUENCIA_BURNOUT_ALTO = 2;
+export const LIMIAR_MEDIA_ALTA_ENERGIA_MODERADO = 180;
+
+export type NivelRiscoBurnout = 'baixo' | 'moderado' | 'alto';
 
 export interface EntradaDiaFadiga {
   data_iso: string;
@@ -12,8 +21,45 @@ export interface ResultadoFadigaSemanal {
   dias_em_sobrecarga: number;
   maior_sequencia_sobrecarga: number;
   media_minutos_alta_energia: number;
-  risco_burnout: 'baixo' | 'moderado' | 'alto';
+  risco_burnout: NivelRiscoBurnout;
   orientacao_ritmo: string;
+}
+
+function somarMinutosAltaEnergiaPendentes(tarefas: TarefaPublica[]): number {
+  return tarefas
+    .filter((t) => !t.concluida && t.energia === 'alta')
+    .reduce((acc, t) => acc + t.estimativa_minutos, 0);
+}
+
+function classificarRiscoBurnout(params: {
+  diasEmSobrecarga: number;
+  maiorSequencia: number;
+  mediaAltaEnergia: number;
+}): { risco: NivelRiscoBurnout; orientacao: string } {
+  if (
+    params.maiorSequencia >= LIMIAR_SEQUENCIA_BURNOUT_ALTO ||
+    params.mediaAltaEnergia > TETO_FOCO_PROFUNDO_MINUTOS
+  ) {
+    return {
+      risco: 'alto',
+      orientacao:
+        'Alerta de fadiga acumulada: reserve um bloco de desaceleracao e renegocie escopo.',
+    };
+  }
+  if (
+    params.diasEmSobrecarga >= 1 ||
+    params.mediaAltaEnergia > LIMIAR_MEDIA_ALTA_ENERGIA_MODERADO
+  ) {
+    return {
+      risco: 'moderado',
+      orientacao:
+        'Sinais iniciais de compressao de agenda: evite empilhar foco profundo amanha.',
+    };
+  }
+  return {
+    risco: 'baixo',
+    orientacao: 'Ritmo sustentavel ao longo do periodo analisado.',
+  };
 }
 
 export function calcularFadigaSemanal(dias: EntradaDiaFadiga[]): ResultadoFadigaSemanal {
@@ -22,44 +68,36 @@ export function calcularFadigaSemanal(dias: EntradaDiaFadiga[]): ResultadoFadiga
   }
 
   const ordenados = [...dias].sort((a, b) => a.data_iso.localeCompare(b.data_iso));
-  let diasSobrecarga = 0;
-  let seqAtual = 0;
-  let maiorSeq = 0;
+  let diasEmSobrecarga = 0;
+  let sequenciaAtual = 0;
+  let maiorSequencia = 0;
   let somaAltaEnergia = 0;
 
   for (const dia of ordenados) {
     const diag = calcularCapacidadeLiquida(dia);
-    const altaMin = dia.tarefas
-      .filter((t) => !t.concluida && t.energia === 'alta')
-      .reduce((acc, t) => acc + t.estimativa_minutos, 0);
-    somaAltaEnergia += altaMin;
+    somaAltaEnergia += somarMinutosAltaEnergiaPendentes(dia.tarefas);
 
     if (diag.status_carga === 'sobrecarga') {
-      diasSobrecarga += 1;
-      seqAtual += 1;
-      if (seqAtual > maiorSeq) maiorSeq = seqAtual;
+      diasEmSobrecarga += 1;
+      sequenciaAtual += 1;
+      maiorSequencia = Math.max(maiorSequencia, sequenciaAtual);
     } else {
-      seqAtual = 0;
+      sequenciaAtual = 0;
     }
   }
 
-  const mediaAlta = Math.round(somaAltaEnergia / ordenados.length);
-  let risco: 'baixo' | 'moderado' | 'alto' = 'baixo';
-  let orientacao = 'Ritmo sustentavel ao longo do periodo analisado.';
-
-  if (maiorSeq >= 2 || mediaAlta > 240) {
-    risco = 'alto';
-    orientacao = 'Alerta de fadiga acumulada: reserve um bloco de desaceleracao e renegocie escopo.';
-  } else if (diasSobrecarga >= 1 || mediaAlta > 180) {
-    risco = 'moderado';
-    orientacao = 'Sinais iniciais de compressao de agenda: evite empilhar foco profundo amanha.';
-  }
+  const mediaAltaEnergia = Math.round(somaAltaEnergia / ordenados.length);
+  const { risco, orientacao } = classificarRiscoBurnout({
+    diasEmSobrecarga,
+    maiorSequencia,
+    mediaAltaEnergia,
+  });
 
   return {
     total_dias_analisados: ordenados.length,
-    dias_em_sobrecarga: diasSobrecarga,
-    maior_sequencia_sobrecarga: maiorSeq,
-    media_minutos_alta_energia: mediaAlta,
+    dias_em_sobrecarga: diasEmSobrecarga,
+    maior_sequencia_sobrecarga: maiorSequencia,
+    media_minutos_alta_energia: mediaAltaEnergia,
     risco_burnout: risco,
     orientacao_ritmo: orientacao,
   };
