@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { calcularCapacidadeLiquida, DataIsoSchema, FiltroEnergiaSchema } from './domain/capacidade.js';
 import { carregarDiaAgenda } from './domain/agendaRepository.js';
 import { simularReplanejamentoDia } from './domain/replanejamento.js';
+import { calcularFadigaSemanal } from './domain/fadigaSemanal.js';
 
 const server = new McpServer({
   name: 'focusflow-mcp-ritmo',
@@ -234,6 +235,49 @@ server.tool(
         ],
       };
     }
+  },
+);
+
+server.tool(
+  'diagnosticar_fadiga_periodo',
+  'Use quando precisar avaliar risco de burnout e sequencia de sobrecarga em multiplas datas (YYYY-MM-DD). Somente leitura.',
+  {
+    datas_iso: z
+      .array(z.string())
+      .min(1, 'Informe pelo menos 1 data YYYY-MM-DD')
+      .describe('Lista de datas YYYY-MM-DD para diagnostico de fadiga'),
+  },
+  async (args) => {
+    const diasCarregados = [];
+    for (const dataBruta of args.datas_iso) {
+      const parsed = DataIsoSchema.safeParse(dataBruta);
+      if (!parsed.success) {
+        throw new McpError(
+          ErrorCode.InvalidParams,
+          `Parametro invalido na lista datas_iso: ${dataBruta}`,
+        );
+      }
+      const dia = carregarDiaAgenda(parsed.data);
+      if (dia) {
+        diasCarregados.push(dia);
+      }
+    }
+
+    if (diasCarregados.length === 0) {
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify({ encontrado: false, mensagem: 'Nenhum dia encontrado.' }, null, 2),
+          },
+        ],
+      };
+    }
+
+    const relatorio = calcularFadigaSemanal(diasCarregados);
+    return {
+      content: [{ type: 'text', text: JSON.stringify(relatorio, null, 2) }],
+    };
   },
 );
 
