@@ -59,6 +59,28 @@ describe('Semana 8 Red-Green-Refactor — Fadiga Cognitiva Multi-Dia', () => {
     assert.equal(res.risco_burnout, 'alto');
   });
 
+  test('nao infla sequencia quando datas sao duplicadas ou nao consecutivas no calendario', () => {
+    const dia = (data: string) => ({
+      data_iso: data,
+      minutos_disponiveis_brutos: 420,
+      minutos_reunioes_fixas: 120,
+      tarefas: [
+        {
+          id: 'p1',
+          titulo: 'Bloco intenso',
+          energia: 'alta' as const,
+          estimativa_minutos: 260,
+          prioridade_eisenhower: 'importante_urgente' as const,
+          concluida: false,
+        },
+      ],
+    });
+    const res = calcularFadigaSemanal([dia('2026-11-01'), dia('2026-11-01'), dia('2026-11-10')]);
+    assert.equal(res.total_dias_analisados, 2);
+    assert.equal(res.dias_em_sobrecarga, 2);
+    assert.equal(res.maior_sequencia_sobrecarga, 1);
+  });
+
   test('rejeita lista vazia de dias com erro claro', () => {
     assert.throws(() => calcularFadigaSemanal([]), /pelo menos 1 dia/i);
   });

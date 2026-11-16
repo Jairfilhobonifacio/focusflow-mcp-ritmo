@@ -67,23 +67,32 @@ export function calcularFadigaSemanal(dias: EntradaDiaFadiga[]): ResultadoFadiga
     throw new RangeError('Informe pelo menos 1 dia para calcular fadiga semanal.');
   }
 
-  const ordenados = [...dias].sort((a, b) => a.data_iso.localeCompare(b.data_iso));
+  const mapaPorData = new Map<string, EntradaDiaFadiga>();
+  for (const d of dias) {
+    mapaPorData.set(d.data_iso, d);
+  }
+  const ordenados = [...mapaPorData.values()].sort((a, b) => a.data_iso.localeCompare(b.data_iso));
   let diasEmSobrecarga = 0;
   let sequenciaAtual = 0;
   let maiorSequencia = 0;
   let somaAltaEnergia = 0;
+  let dataAnteriorMs: number | null = null;
 
   for (const dia of ordenados) {
     const diag = calcularCapacidadeLiquida(dia);
     somaAltaEnergia += somarMinutosAltaEnergiaPendentes(dia.tarefas);
+    const atualMs = Date.parse(`${dia.data_iso}T00:00:00Z`);
+    const ehDiaConsecutivo =
+      dataAnteriorMs !== null && Math.round((atualMs - dataAnteriorMs) / 86_400_000) === 1;
 
     if (diag.status_carga === 'sobrecarga') {
       diasEmSobrecarga += 1;
-      sequenciaAtual += 1;
+      sequenciaAtual = ehDiaConsecutivo ? sequenciaAtual + 1 : 1;
       maiorSequencia = Math.max(maiorSequencia, sequenciaAtual);
     } else {
       sequenciaAtual = 0;
     }
+    dataAnteriorMs = atualMs;
   }
 
   const mediaAltaEnergia = Math.round(somaAltaEnergia / ordenados.length);
