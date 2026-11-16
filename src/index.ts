@@ -6,6 +6,7 @@ import { calcularCapacidadeLiquida, DataIsoSchema, FiltroEnergiaSchema } from '.
 import { carregarDiaAgenda } from './domain/agendaRepository.js';
 import { simularReplanejamentoDia } from './domain/replanejamento.js';
 import { calcularFadigaSemanal } from './domain/fadigaSemanal.js';
+import { resumirQuadrantesDia } from './domain/resumoPrioridades.js';
 
 const server = new McpServer({
   name: 'focusflow-mcp-ritmo',
@@ -295,6 +296,55 @@ server.tool(
       return {
         isError: true,
         content: [{ type: 'text', text: 'Erro interno ao diagnosticar fadiga do periodo.' }],
+      };
+    }
+  },
+);
+
+server.tool(
+  'consultar_distribuicao_quadrantes',
+  'Use quando precisar saber quantos minutos pendentes estao em cada quadrante da matriz de Eisenhower e qual o percentual de foco estrategico em uma data (YYYY-MM-DD). Somente leitura.',
+  {
+    data_iso: z
+      .string()
+      .max(10, 'data_iso deve ter no maximo 10 caracteres (YYYY-MM-DD)')
+      .describe('Data da agenda no formato estrito YYYY-MM-DD (ex.: 2026-11-05)'),
+  },
+  async (args) => {
+    const parsedDate = DataIsoSchema.safeParse(args.data_iso);
+    if (!parsedDate.success) {
+      throw new McpError(
+        ErrorCode.InvalidParams,
+        'Parametro data_iso invalido: informe exatamente YYYY-MM-DD (10 caracteres, apenas digitos e hifens).',
+      );
+    }
+
+    try {
+      const dia = carregarDiaAgenda(parsedDate.data);
+      if (!dia) {
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(
+                { encontrado: false, data_iso: parsedDate.data, mensagem: 'Dia nao encontrado.' },
+                null,
+                2,
+              ),
+            },
+          ],
+        };
+      }
+
+      const resumo = resumirQuadrantesDia(dia.data_iso, dia.tarefas);
+      return {
+        content: [{ type: 'text', text: JSON.stringify(resumo, null, 2) }],
+      };
+    } catch (err) {
+      console.error('[focusflow-mcp-ritmo] Erro interno em consultar_distribuicao_quadrantes:', err);
+      return {
+        isError: true,
+        content: [{ type: 'text', text: 'Erro interno ao resumir quadrantes do dia.' }],
       };
     }
   },
