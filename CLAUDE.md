@@ -13,6 +13,7 @@ Motor de cálculo de capacidade cognitiva diária (blocos de foco profundo 4-4-4
 ## Comandos Úteis
 - Instalar dependências: `npm install`
 - Rodar testes automatizados: `npm test`
+- Rodar pipeline completo de 4 verificadores determinísticos: `npm run check`
 - Compilar TypeScript para `build/` e `meu-mcp-server/build/`: `npm run build`
 - Inspecionar MCP via CLI: `npx @modelcontextprotocol/inspector --cli node build/index.js --method tools/list`
 

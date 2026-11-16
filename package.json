@@ -7,6 +7,11 @@
   "scripts": {
     "build": "tsc && node -e \"const fs=require('fs'); fs.cpSync('build','meu-mcp-server/build',{recursive:true}); fs.cpSync('data','meu-mcp-server/data',{recursive:true});\"",
     "test": "node --import tsx --test tests/*.test.ts",
+    "check:types": "tsc --noEmit",
+    "check:static": "node scripts/verify-static-guards.mjs",
+    "check:contracts": "node --import tsx scripts/verify-mcp-contracts.ts",
+    "check:tests": "node --import tsx --test tests/*.test.ts",
+    "check": "npm run build && npm run check:types && npm run check:static && npm run check:contracts && npm run check:tests",
     "start": "node build/index.js"
   },
   "dependencies": {
